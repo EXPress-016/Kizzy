@@ -28,7 +28,6 @@ import com.my.kizzy.ui.common.SettingItem
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Settings(
-    navigateToProfile: () -> Unit,
     navigateToStyleAndAppeareance: () -> Unit,
     navigateToAbout: () -> Unit,
     navigateToRpcSettings: () -> Unit,
@@ -63,15 +62,6 @@ fun Settings(
                             showBatteryHint =
                                 !pm.isIgnoringBatteryOptimizations(context.packageName)
                         }
-                    }
-                }
-                item {
-                    SettingItem(
-                        title = stringResource(id = R.string.account),
-                        description = stringResource(id = R.string.account_info),
-                        icon = Icons.Outlined.Person
-                    ) {
-                        navigateToProfile()
                     }
                 }
                 item {

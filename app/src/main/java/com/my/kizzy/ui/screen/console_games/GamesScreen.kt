@@ -146,7 +146,6 @@ fun GamesScreen(
                                     name = info.platform,
                                     details = info.game_title,
                                     timeatampsStart = System.currentTimeMillis().toString(),
-                                    status = "dnd",
                                     largeImg = info.large_image?:"",
                                     smallImg = info.small_image,
                                     type = "0",

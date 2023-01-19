@@ -17,7 +17,6 @@ import android.content.Intent
 import android.os.IBinder
 import com.google.gson.GsonBuilder
 import com.my.kizzy.R
-import com.my.kizzy.common.Constants
 import com.my.kizzy.domain.use_case.get_current_data.AppTracker
 import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.ui.screen.settings.rpc_settings.RpcButtons
@@ -32,7 +31,7 @@ import javax.inject.Inject
 
 @Suppress("DEPRECATION")
 @AndroidEntryPoint
-class ExperimentalRpc: Service() {
+class ExperimentalRpc : Service() {
 
     @Inject
     lateinit var scope: CoroutineScope
@@ -57,7 +56,7 @@ class ExperimentalRpc: Service() {
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
 
-            val stopIntent = Intent(this,ExperimentalRpc::class.java)
+            val stopIntent = Intent(this, ExperimentalRpc::class.java)
             stopIntent.action = ACTION_STOP_SERVICE
             val pendingIntent: PendingIntent = PendingIntent.getService(
                 this, 0, stopIntent, PendingIntent.FLAG_IMMUTABLE
@@ -69,13 +68,12 @@ class ExperimentalRpc: Service() {
                 appTracker.getCurrentAppData().onStart {
                     vlog.e(TAG, "Starting Flow")
                 }.collect { collectedData ->
-                    vlog.i(TAG,"Flow Data Received")
+                    vlog.i(TAG, "Flow Data Received")
                     if (kizzyRPC.isRpcRunning()) {
                         kizzyRPC.updateRPC(collectedData)
                     } else kizzyRPC.apply {
                         setName(collectedData.name)
                         setStartTimestamps(System.currentTimeMillis())
-                        setStatus(Constants.DND)
                         setLargeImage(collectedData.large_image)
                         setSmallImage(collectedData.small_image)
                         if (Prefs[Prefs.USE_RPC_BUTTONS, false]) {
@@ -88,12 +86,14 @@ class ExperimentalRpc: Service() {
                         }
                         build()
                     }
-                    manager.notify(2292,Notification.Builder(this@ExperimentalRpc, CHANNEL_ID)
-                        .setSmallIcon(R.drawable.ic_dev_rpc)
-                        .setContentTitle(collectedData.name)
-                        .setContentText(collectedData.details)
-                        .addAction(R.drawable.ic_dev_rpc,"Exit",pendingIntent)
-                        .build())
+                    manager.notify(
+                        2292, Notification.Builder(this@ExperimentalRpc, CHANNEL_ID)
+                            .setSmallIcon(R.drawable.ic_dev_rpc)
+                            .setContentTitle(collectedData.name)
+                            .setContentText(collectedData.details)
+                            .addAction(R.drawable.ic_dev_rpc, "Exit", pendingIntent)
+                            .build()
+                    )
                 }
             }
             startForeground(
@@ -101,8 +101,9 @@ class ExperimentalRpc: Service() {
                 Notification.Builder(this, AppDetectionService.CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_dev_rpc)
                     .setContentTitle("Service enabled")
-                    .addAction(R.drawable.ic_dev_rpc,"Exit",pendingIntent)
-                    .build())
+                    .addAction(R.drawable.ic_dev_rpc, "Exit", pendingIntent)
+                    .build()
+            )
         }
         return super.onStartCommand(intent, flags, startId)
     }
@@ -114,13 +115,13 @@ class ExperimentalRpc: Service() {
         const val CHANNEL_NAME = "Shared Rpc Notification"
     }
 
-
-
     override fun onDestroy() {
         scope.cancel()
-        kizzyRPC.closeRPC()
+        if (kizzyRPC.isRpcRunning()) kizzyRPC.closeRPC()
+        if (kizzyRPC.isWssRunning()) kizzyRPC.closeWSS()
         super.onDestroy()
     }
+
     override fun onBind(intent: Intent?): IBinder? {
         return null
     }

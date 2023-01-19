@@ -12,7 +12,6 @@ import com.blankj.utilcode.util.AppUtils
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.my.kizzy.R
-import com.my.kizzy.common.Constants
 import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
 import com.my.kizzy.ui.screen.settings.rpc_settings.RpcButtons
@@ -32,7 +31,6 @@ class AppDetectionService : Service() {
 
     @Inject
     lateinit var scope: CoroutineScope
-
     override fun onBind(intent: Intent): IBinder? {
         return null
     }
@@ -55,12 +53,14 @@ class AppDetectionService : Service() {
             channel.description = "Background Service which notifies the Current Running app"
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
-            val stopIntent = Intent(this,AppDetectionService::class.java)
+            val stopIntent = Intent(this, AppDetectionService::class.java)
             stopIntent.action = ACTION_STOP_SERVICE
-            val pendingIntent: PendingIntent = PendingIntent.getService(this,
-                0,stopIntent,PendingIntent.FLAG_IMMUTABLE)
-            val rpcButtonsString = Prefs[Prefs.RPC_BUTTONS_DATA,"{}"]
-            val rpcButtons = Gson().fromJson(rpcButtonsString,RpcButtons::class.java)
+            val pendingIntent: PendingIntent = PendingIntent.getService(
+                this,
+                0, stopIntent, PendingIntent.FLAG_IMMUTABLE
+            )
+            val rpcButtonsString = Prefs[Prefs.RPC_BUTTONS_DATA, "{}"]
+            val rpcButtons = Gson().fromJson(rpcButtonsString, RpcButtons::class.java)
             scope.launch {
                 while (isActive) {
                     val usageStatsManager =
@@ -87,10 +87,14 @@ class AppDetectionService : Service() {
                                     kizzyRPC.apply {
                                         setName(AppUtils.getAppName(packageName))
                                         setStartTimestamps(System.currentTimeMillis())
-                                        setStatus(Constants.DND)
-                                        setLargeImage(RpcImage.ApplicationIcon(packageName, this@AppDetectionService))
-                                        if (Prefs[Prefs.USE_RPC_BUTTONS,false]){
-                                            with(rpcButtons){
+                                        setLargeImage(
+                                            RpcImage.ApplicationIcon(
+                                                packageName,
+                                                this@AppDetectionService
+                                            )
+                                        )
+                                        if (Prefs[Prefs.USE_RPC_BUTTONS, false]) {
+                                            with(rpcButtons) {
                                                 setButton1(button1.takeIf { it.isNotEmpty() })
                                                 setButton1URL(button1Url.takeIf { it.isNotEmpty() })
                                                 setButton2(button2.takeIf { it.isNotEmpty() })
@@ -106,11 +110,27 @@ class AppDetectionService : Service() {
                                         .setContentText(packageName)
                                         .setSmallIcon(R.drawable.ic_apps)
                                         .setContentTitle("Service enabled")
-                                        .addAction(R.drawable.ic_apps,"Exit",pendingIntent)
+                                        .addAction(R.drawable.ic_apps, "Exit", pendingIntent)
                                         .build()
                                 )
                                 notifset = true
                             } else {
+                                if (!kizzyRPC.isRpcRunning()) {
+                                    kizzyRPC.apply {
+                                        setName(null)
+                                        setStartTimestamps(null)
+                                        setLargeImage(null)
+                                        if (Prefs[Prefs.USE_RPC_BUTTONS, false]) {
+                                            with(rpcButtons) {
+                                                setButton1(null)
+                                                setButton1URL(null)
+                                                setButton2(null)
+                                                setButton2URL(null)
+                                            }
+                                        }
+                                        build()
+                                    }
+                                }
                                 if (kizzyRPC.isRpcRunning()) {
                                     kizzyRPC.closeRPC()
                                 }
@@ -124,7 +144,7 @@ class AppDetectionService : Service() {
                             Notification.Builder(context, CHANNEL_ID)
                                 .setSmallIcon(R.drawable.ic_apps)
                                 .setContentTitle("Service enabled")
-                                .addAction(R.drawable.ic_apps,"Exit",pendingIntent)
+                                .addAction(R.drawable.ic_apps, "Exit", pendingIntent)
                                 .build()
                         )
                     }
@@ -136,12 +156,13 @@ class AppDetectionService : Service() {
     }
 
     override fun onDestroy() {
-       scope.cancel()
-        kizzyRPC.closeRPC()
+        scope.cancel()
+        if (kizzyRPC.isRpcRunning()) kizzyRPC.closeRPC()
+        if (kizzyRPC.isWssRunning()) kizzyRPC.closeWSS()
         super.onDestroy()
     }
 
-    companion object{
+    companion object {
         const val ACTION_STOP_SERVICE = "Stop RPC"
         const val CHANNEL_ID = "background"
         const val CHANNEL_NAME = "App Detection Notification"

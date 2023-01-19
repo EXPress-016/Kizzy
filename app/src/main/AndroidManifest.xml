@@ -61,6 +61,9 @@
             android:name="com.my.kizzy.service.AppDetectionService"
             android:exported="false" />
         <service
+            android:name="com.my.kizzy.service.WssService"
+            android:exported="false" />
+        <service
             android:name="com.my.kizzy.service.MediaRpcService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />

@@ -1,14 +1,18 @@
 package com.my.kizzy.rpc
 
+import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.util.ArrayMap
 import com.android.girish.vlog.Vlog
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.google.gson.reflect.TypeToken
+import com.my.kizzy.App
 import com.my.kizzy.common.Constants
 import com.my.kizzy.domain.repository.KizzyRepository
 import com.my.kizzy.domain.use_case.get_current_data.SharedRpc
 import com.my.kizzy.rpc.model.*
+import com.my.kizzy.service.WssService
 import com.my.kizzy.utils.Prefs
 import com.my.kizzy.utils.Prefs.CUSTOM_ACTIVITY_TYPE
 import org.java_websocket.client.WebSocketClient
@@ -19,7 +23,6 @@ import javax.inject.Inject
 import javax.net.ssl.SSLParameters
 
 class KizzyRPC @Inject constructor(
-    private val token: String,
     private val kizzyRepository: KizzyRepository,
     private val vlog: Vlog
 ) {
@@ -31,39 +34,33 @@ class KizzyRPC @Inject constructor(
     private var smallImage: RpcImage? = null
     private var largeText: String? = null
     private var smallText: String? = null
-    private var status: String? = null
     private var startTimestamps: Long? = null
     private var stopTimestamps: Long? = null
     private var type: Int = 0
     var webSocketClient: WebSocketClient? = null
+    var webSocketServer: WssService.WebSocketServer? = null
     var gson: Gson = GsonBuilder().setPrettyPrinting().create()
-    var heartbeatRunnable: Runnable
-    var heartbeatThr: Thread? = null
-    var heartbeatInterval = 0
-    var seq = 0
-    private var sessionId: String? = null
-    private var reconnectSession = false
     private var buttons = ArrayList<String>()
     private var buttonUrl = ArrayList<String>()
-
+    private var port = 6463
 
     fun closeRPC() {
-        if (heartbeatThr != null) {
-            if (!heartbeatThr!!.isInterrupted) heartbeatThr!!.interrupt()
-        }
         if (webSocketClient != null) webSocketClient!!.close(1000)
     }
 
-    fun isRpcRunning(): Boolean {
-        return webSocketClient?.isOpen == true
+    fun closeWSS() {
+        val context = App.getContext()
+        if (webSocketServer != null) context.stopService(Intent(context, WssService::class.java))
     }
 
-    /**
-     * #Todo add a better token checking function
-     * @return true if token is valid else false
-     */
-    fun isUserTokenValid(): Boolean {
-        return token.isNotEmpty()
+    fun isRpcRunning(): Boolean {
+        if (webSocketClient?.isOpen == true) return true
+        return false
+    }
+
+    fun isWssRunning(): Boolean {
+        if (webSocketServer?.isOpen == true) return true
+        return false
     }
 
     /**
@@ -107,7 +104,7 @@ class KizzyRPC @Inject constructor(
      * @param large_image
      * @return
      */
-    fun setLargeImage(large_image: RpcImage?,large_text: String? = null): KizzyRPC {
+    fun setLargeImage(large_image: RpcImage?, large_text: String? = null): KizzyRPC {
         this.largeText = large_text.takeIf { !it.isNullOrEmpty() }
         this.largeImage = large_image
         return this
@@ -119,7 +116,7 @@ class KizzyRPC @Inject constructor(
      * @param small_image
      * @return
      */
-    fun setSmallImage(small_image: RpcImage?,small_text: String? = null): KizzyRPC {
+    fun setSmallImage(small_image: RpcImage?, small_text: String? = null): KizzyRPC {
         this.smallText = small_text.takeIf { !it.isNullOrEmpty() }
         this.smallImage = small_image
         return this
@@ -163,16 +160,6 @@ class KizzyRPC @Inject constructor(
         if (type in 0..5)
             this.type = type
         else this.type = 0
-        return this
-    }
-
-    /** Status type for profile online,idle,dnd
-     *
-     * @param status
-     * @return
-     */
-    fun setStatus(status: String?): KizzyRPC {
-        this.status = status
         return this
     }
 
@@ -242,36 +229,27 @@ class KizzyRPC @Inject constructor(
                     )
                 ),
                 afk = true,
-                since = if (startTimestamps != null) startTimestamps else System.currentTimeMillis(),
-                status = status
+                since = if (startTimestamps != null) startTimestamps else System.currentTimeMillis()
             )
         )
-        createWebsocketClient()
+        createWebsocket(port)
     }
 
-    fun sendIdentify() {
-        vlog.d(TAG, "sendIdentify() called")
-        webSocketClient!!.send(
-            Identify(
-                op = 2,
-                d = Data(
-                    capabilities = 65,
-                    compress = false,
-                    largeThreshold = 100,
-                    properties = Properties(
-                        browser = "Discord Client",
-                        device = "disco",
-                        os = "Windows"
-                    ),
-                    token = token
-                )
-            )
-        )
+    private fun createWebsocket(port: Int) {
+        if (!isWssRunning()) {
+            vlog.d(TAG, "createWebsocketServer()")
+            createWebsocketServer(port)
+            return
+        }
+        vlog.d(TAG, "createWebsocketClient()")
+        createWebsocketClient(port)
     }
 
-    private fun createWebsocketClient() {
+    private fun createWebsocketClient(port: Int) {
+        webSocketServer = WssService.server
+        if (webSocketServer == null) return
         val uri: URI = try {
-            URI("wss://gateway.discord.gg/?encoding=json&v=10")
+            URI("wss://localhost.direct:${port}")
         } catch (e: URISyntaxException) {
             e.printStackTrace()
             return
@@ -279,6 +257,15 @@ class KizzyRPC @Inject constructor(
         val headerMap = ArrayMap<String, String>()
         webSocketClient = Websocket(uri, headerMap)
         (webSocketClient as Websocket).connect()
+    }
+    private fun createWebsocketServer(port: Int) {
+        val context = App.getContext()
+        val serverIntent = Intent(context, WssService::class.java)
+        serverIntent.putExtra("port", port)
+        context.startService(serverIntent)
+            Handler(Looper.getMainLooper()).postDelayed({
+                createWebsocketClient(port)
+            }, 3000)
     }
 
     suspend fun updateRPC(
@@ -300,13 +287,13 @@ class KizzyRPC @Inject constructor(
                             name = name,
                             details = details,
                             state = state,
-                            type = Prefs[CUSTOM_ACTIVITY_TYPE,0],
+                            type = Prefs[CUSTOM_ACTIVITY_TYPE, 0],
                             timestamps = if (enableTimestamps) Timestamps(start = time) else null,
                             assets =
                             if (large_image != null || small_image != null)
                                 Assets(
-                                largeImage = large_image?.resolveImage(kizzyRepository),
-                                smallImage = small_image?.resolveImage(kizzyRepository)
+                                    largeImage = large_image?.resolveImage(kizzyRepository),
+                                    smallImage = small_image?.resolveImage(kizzyRepository)
                                 )
                             else null,
                             buttons = if (buttons.size > 0) buttons else null,
@@ -315,8 +302,7 @@ class KizzyRPC @Inject constructor(
                         )
                     ),
                     afk = true,
-                    since = time,
-                    status = Constants.DND
+                    since = time
                 )
             )
         )
@@ -336,7 +322,7 @@ class KizzyRPC @Inject constructor(
                             name = sharedRpc.name,
                             details = sharedRpc.details?.takeIf { it.isNotEmpty() },
                             state = sharedRpc.state?.takeIf { it.isNotEmpty() },
-                            type = Prefs[CUSTOM_ACTIVITY_TYPE,0],
+                            type = Prefs[CUSTOM_ACTIVITY_TYPE, 0],
                             timestamps = time,
                             assets = if (sharedRpc.large_image != null || sharedRpc.small_image != null)
                                 Assets(
@@ -350,27 +336,10 @@ class KizzyRPC @Inject constructor(
                         )
                     ),
                     afk = true,
-                    since = startTimestamps,
-                    status = Constants.DND
+                    since = startTimestamps
                 )
             )
         )
-    }
-
-    init {
-        heartbeatRunnable = Runnable {
-            try {
-                if (heartbeatInterval < 10000) throw RuntimeException("invalid")
-                Thread.sleep(heartbeatInterval.toLong())
-                webSocketClient.send(
-                    HeartBeat(
-                        op = 1,
-                        d = if (seq == 0) "null" else seq.toString()
-                    )
-                )
-            } catch (_: InterruptedException) {
-            }
-        }
     }
 
     companion object {
@@ -378,122 +347,44 @@ class KizzyRPC @Inject constructor(
     }
 
     inner class Websocket(uri: URI, map: ArrayMap<String, String>) : WebSocketClient(uri, map) {
-        private var gatewayResume = ""
-
         override fun send(text: String?) {
             if (text != null) {
-                vlog.d(TAG,text)
+                vlog.d(TAG, text)
             }
             super.send(text)
         }
 
         override fun connect() {
-            vlog.d(TAG, "connect() called")
+            vlog.d(TAG, "connect() called on port: $port")
             super.connect()
         }
 
         override fun onOpen(handshakedata: ServerHandshake?) {
-            vlog.i(TAG, "onOpen() called with: handshake-data = $handshakedata")
+            vlog.i(TAG, "onOpen() called with: handshake-data: $handshakedata")
+            send("I am the handler!")
+            send("[READY] Websocket is ready to send rpc")
         }
 
         override fun onMessage(message: String) {
-            vlog.i(TAG, "onMessage() called with: message = $message")
-            val map = gson.fromJson<ArrayMap<String, Any>>(
-                message, object : TypeToken<ArrayMap<String?, Any?>?>() {}.type
-            )
-            val o = map["s"]
-            if (o != null) {
-                seq = (o as Double).toInt()
-            }
-            when ((map["op"] as Double?)!!.toInt()) {
-                0 -> if (map["t"] as String? == "READY") {
-                    sessionId = (map["d"] as Map<*, *>?)!!["session_id"].toString()
-                    gatewayResume = (map["d"] as Map<*, *>?)!!["resume_gateway_url"].toString()
-                    vlog.d(TAG, gatewayResume)
-                    vlog.i(TAG, "Connected")
-                    send(rpc)
-                    return
-                }
-                10 -> if (!reconnectSession) {
-                    val data = map["d"] as Map<*, *>?
-                    heartbeatInterval = (data!!["heartbeat_interval"] as Double?)!!.toInt()
-                    heartbeatThr = Thread(heartbeatRunnable)
-                    heartbeatThr!!.start()
-                    sendIdentify()
-                } else {
-                    vlog.d(TAG, "Sending Resume")
-                    val data = map["d"] as Map<*, *>?
-                    heartbeatInterval = (data!!["heartbeat_interval"] as Double?)!!.toInt()
-                    heartbeatThr = Thread(heartbeatRunnable)
-                    heartbeatThr!!.start()
-                    reconnectSession = false
-                    send(
-                        Resume(
-                            op = 6,
-                            d = D(
-                                token = token,
-                                sessionId = sessionId,
-                                seq = seq
-                            )
-                        )
-                    )
-                }
-                1 -> {
-                    if (!Thread.interrupted()) {
-                        heartbeatThr!!.interrupt()
-                    }
-                    send(
-                        HeartBeat(
-                            op = 1,
-                            d = if (seq == 0) "null" else seq.toString()
-                        )
-                    )
-                }
-                11 -> {
-                    if (!Thread.interrupted()) {
-                        heartbeatThr!!.interrupt()
-                    }
-                    heartbeatThr = Thread(heartbeatRunnable)
-                    heartbeatThr!!.start()
-                }
-                7 -> {
-                    reconnectSession = true
-                    vlog.e(TAG, "Closing and Reconnecting Session")
-                    webSocketClient!!.close(4000)
-                }
-                9 -> if (!heartbeatThr!!.isInterrupted) {
-                    vlog.d(TAG, "Reconnect Failed")
-                    heartbeatThr!!.interrupt()
-                    heartbeatThr = Thread(heartbeatRunnable)
-                    heartbeatThr!!.start()
-                    sendIdentify()
-                }
+            vlog.d(TAG, "onMessage() called with: message: $message")
+            if (message.contains("[READY] Websocket is ready to receive rpc")) {
+                send(rpc)
             }
         }
 
         override fun onClose(code: Int, reason: String, remote: Boolean) {
-            vlog.d(TAG, "onClose() called with: code = $code, reason = $reason, remote = $remote")
-            if (code == 4000) {
-                reconnectSession = true
-                heartbeatThr!!.interrupt()
-                vlog.e(TAG, "Closed Socket")
-                val newTh = Thread {
-                    try {
-                        Thread.sleep(200)
-                        webSocketClient = Websocket(URI(gatewayResume), ArrayMap<String, String>())
-                        (webSocketClient as Websocket).connect()
-                    } catch (_: InterruptedException) {
-                    }
-                }
-                newTh.start()
-            } else throw RuntimeException("Invalid")
+            vlog.d(TAG, "onClose() called with: code: $code, reason: $reason, remote: $remote")
         }
 
         override fun onError(e: Exception) {
-            vlog.e(TAG, "onError() called with: e = $e")
+            vlog.e(TAG, "onError() called with: e: $e")
             if (e.message != "Interrupt") {
                 closeRPC()
+                return
             }
+            if (port > 6472) return
+            port++
+            createWebsocket(port)
         }
 
         override fun onSetSSLParameters(p: SSLParameters) {

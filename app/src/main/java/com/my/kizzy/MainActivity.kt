@@ -33,9 +33,6 @@ import com.my.kizzy.ui.screen.custom.CustomScreenViewModel
 import com.my.kizzy.ui.screen.home.Home
 import com.my.kizzy.ui.screen.media.MediaRPC
 import com.my.kizzy.ui.screen.media.hasNotificationAccess
-import com.my.kizzy.ui.screen.profile.login.LoginScreen
-import com.my.kizzy.ui.screen.profile.user.UserScreen
-import com.my.kizzy.ui.screen.profile.user.UserViewModel
 import com.my.kizzy.ui.screen.settings.Settings
 import com.my.kizzy.ui.screen.settings.about.About
 import com.my.kizzy.ui.screen.settings.about.Credits
@@ -114,8 +111,6 @@ class MainActivity : AppCompatActivity() {
                        navController.navigate(Routes.HOME) {
                            popUpTo(Routes.SETUP) { inclusive = true }
                        }
-                   }, navigateToLogin = {
-                       navController.navigate(Routes.PROFILE)
                    })
                 }
                 animatedComposable(Routes.HOME) {
@@ -133,11 +128,6 @@ class MainActivity : AppCompatActivity() {
                         },
                         navigateToAbout = {
                             navController.navigate(Routes.ABOUT) {
-                                launchSingleTop = true
-                            }
-                        },
-                        navigateToProfile = {
-                            navController.navigate(Routes.PROFILE) {
                                 launchSingleTop = true
                             }
                         },
@@ -159,23 +149,6 @@ class MainActivity : AppCompatActivity() {
                     CustomRPC(onBackPressed = { navController.popBackStack() },viewModel)
                 }
                 animatedComposable(Routes.MEDIA_RPC) { MediaRPC(onBackPressed = { navController.popBackStack() }) }
-                animatedComposable(Routes.PROFILE) {
-                    var loggedIn by remember {
-                        mutableStateOf(Prefs[Prefs.TOKEN, ""].isNotEmpty())
-                    }
-                    if (loggedIn) {
-                        val viewModel: UserViewModel by viewModels()
-                        UserScreen(viewModel = viewModel) {
-                            navController.popBackStack()
-                        }
-                    } else {
-                        LoginScreen(onBackPressed = {
-                            navController.popBackStack()
-                        }, onCompleted = {
-                            loggedIn = true
-                        })
-                    }
-                }
                 animatedComposable(Routes.CONSOLE_RPC) {
                     val viewModel: GamesViewModel by viewModels()
                     GamesScreen(onBackPressed = {

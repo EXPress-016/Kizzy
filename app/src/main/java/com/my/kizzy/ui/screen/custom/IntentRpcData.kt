@@ -20,8 +20,6 @@ data class RpcIntent(
     val smallImg: String = "",
     @SerializedName("state")
     val state: String = "",
-    @SerializedName("status")
-    val status: String = "",
     @SerializedName("timeatampsStart")
     val timeatampsStart: String = "",
     @SerializedName("timeatampsStop")

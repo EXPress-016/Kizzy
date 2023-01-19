@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -29,7 +28,6 @@ import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.gson.Gson
 import com.my.kizzy.R
-import com.my.kizzy.data.remote.User
 import com.my.kizzy.service.AppDetectionService
 import com.my.kizzy.service.CustomRpcService
 import com.my.kizzy.service.ExperimentalRpc
@@ -130,23 +128,6 @@ fun CustomRPC(onBackPressed: () -> Unit, viewModel: CustomScreenViewModel) {
                                     menuClicked = !menuClicked
                                     showDeleteDialog = true
                                 }
-
-
-                                DropdownMenuItem(text = { Text(stringResource(id = R.string.preview_rpc)) },
-                                    onClick = {
-                                        menuClicked = !menuClicked
-                                        showPreviewDialog = true
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.ic_rpc_placeholder),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(
-                                                Icons.Default.Delete.defaultWidth,
-                                                Icons.Default.Delete.defaultHeight
-                                            )
-                                        )
-                                    })
                             }
                         }
                     })
@@ -158,7 +139,6 @@ fun CustomRPC(onBackPressed: () -> Unit, viewModel: CustomScreenViewModel) {
                     state = state,
                     timeatampsStart = startTimestamps,
                     timeatampsStop = stopTimestamps,
-                    status = status,
                     button1 = button1,
                     button2 = button2,
                     button1link = button1Url,
@@ -179,7 +159,6 @@ fun CustomRPC(onBackPressed: () -> Unit, viewModel: CustomScreenViewModel) {
                         state = it.state
                         startTimestamps = it.timeatampsStart
                         stopTimestamps = it.timeatampsStop
-                        status = it.status
                         button1 = it.button1
                         button2 = it.button2
                         button1Url = it.button1link
@@ -207,12 +186,6 @@ fun CustomRPC(onBackPressed: () -> Unit, viewModel: CustomScreenViewModel) {
                             snackBarHostState.showSnackbar(it)
                         }
                     }
-                } else if(showPreviewDialog) {
-                    val json = Prefs[Prefs.USER_DATA, "{}"]
-                    val user = Gson().fromJson(json, User::class.java)
-                    PreviewDialog(user = user, rpc, onDismiss = {
-                        showPreviewDialog = false
-                    })
                 }
 
                 LazyColumn(
@@ -245,7 +218,6 @@ fun CustomRPC(onBackPressed: () -> Unit, viewModel: CustomScreenViewModel) {
                                             state = state,
                                             timeatampsStart = startTimestamps,
                                             timeatampsStop = stopTimestamps,
-                                            status = status,
                                             button1 = button1,
                                             button2 = button2,
                                             button1link = button1Url,
@@ -327,14 +299,6 @@ fun CustomRPC(onBackPressed: () -> Unit, viewModel: CustomScreenViewModel) {
                                     })
                             }) {
                             stopTimestamps = it
-                        }
-                    }
-
-                    item {
-                        RpcField(
-                            value = status, label = R.string.activity_status_online_idle_dnd
-                        ) {
-                            status = it
                         }
                     }
 

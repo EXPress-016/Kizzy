@@ -15,7 +15,6 @@ package com.my.kizzy.di
 import com.android.girish.vlog.Vlog
 import com.my.kizzy.domain.repository.KizzyRepository
 import com.my.kizzy.rpc.KizzyRPC
-import com.my.kizzy.utils.Prefs
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -31,7 +30,7 @@ object ServiceModule {
     fun provideKizzyRpc(
         kizzyRepository: KizzyRepository,
         vlog: Vlog
-    ) = KizzyRPC(Prefs[Prefs.TOKEN,""],kizzyRepository,vlog)
+    ) = KizzyRPC(kizzyRepository,vlog)
 
     @Provides
     fun providesCoroutineScope(): CoroutineScope {

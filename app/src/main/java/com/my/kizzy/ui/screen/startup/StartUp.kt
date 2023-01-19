@@ -38,12 +38,9 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import com.google.gson.Gson
 import com.my.kizzy.R
-import com.my.kizzy.data.remote.User
 import com.my.kizzy.ui.common.PreferenceSubtitle
 import com.my.kizzy.utils.Prefs
-import com.my.kizzy.utils.fromJson
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -51,10 +48,8 @@ fun StartUp(
     usageAccessStatus: MutableState<Boolean>,
     mediaControlStatus: MutableState<Boolean>,
     navigateToLanguages: () -> Unit = {},
-    navigateToLogin: () -> Unit = {},
     navigateToHome: () -> Unit = {}
 ) {
-    val user: User? = Gson().fromJson(Prefs[Prefs.USER_DATA,""])
     val context = LocalContext.current
     val storagePermissionState = rememberPermissionState(
         android.Manifest.permission.WRITE_EXTERNAL_STORAGE
@@ -187,13 +182,6 @@ fun StartUp(
                         modifier = Modifier,
                         style = MaterialTheme.typography.titleMedium
                     )
-                }
-                item {
-                    SetupCard(title = stringResource(id = R.string.account),
-                        description = user?.username ?: stringResource(id = R.string.login_with_discord)
-                        ) {
-                        navigateToLogin()
-                    }
                 }
                 item {
                     SetupCard(title = stringResource(id = R.string.language),

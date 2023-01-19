@@ -21,7 +21,5 @@ data class RichPresenceData(
     @SerializedName("afk")
     val afk: Boolean?,
     @SerializedName("since")
-    val since: Long?,
-    @SerializedName("status")
-    val status: String?
+    val since: Long?
 )

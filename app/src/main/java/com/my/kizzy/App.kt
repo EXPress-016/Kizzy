@@ -1,6 +1,7 @@
 package com.my.kizzy
 
 import android.app.Application
+import android.content.Context
 import com.developer.crashx.config.CrashConfig
 import com.google.android.material.color.DynamicColors
 import com.my.kizzy.utils.AppUtils
@@ -12,7 +13,9 @@ import kotlinx.coroutines.SupervisorJob
 
 @HiltAndroidApp
 class App: Application() {
-
+    init {
+        instance = this
+    }
     override fun onCreate() {
         super.onCreate()
         MMKV.initialize(this)
@@ -26,6 +29,11 @@ class App: Application() {
     }
 
     companion object{
+        fun getContext(): Context {
+            return instance.applicationContext
+        }
+
+        private lateinit var instance: App
         lateinit var applicationScope: CoroutineScope
     }
 }

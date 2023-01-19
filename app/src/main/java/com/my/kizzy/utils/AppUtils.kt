@@ -7,8 +7,8 @@ import android.content.Context
 import com.android.girish.vlog.Vlog
 import com.my.kizzy.service.AppDetectionService
 import com.my.kizzy.service.CustomRpcService
-import com.my.kizzy.service.MediaRpcService
 import com.my.kizzy.service.ExperimentalRpc
+import com.my.kizzy.service.MediaRpcService
 import javax.inject.Singleton
 
 @Singleton

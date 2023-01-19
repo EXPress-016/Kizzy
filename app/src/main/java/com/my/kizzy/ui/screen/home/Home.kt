@@ -2,15 +2,11 @@ package com.my.kizzy.ui.screen.home
 
 import android.content.Intent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,21 +24,15 @@ import androidx.compose.ui.unit.dp
 import com.google.accompanist.flowlayout.FlowMainAxisAlignment
 import com.google.accompanist.flowlayout.FlowRow
 import com.google.accompanist.flowlayout.SizeMode
-import com.google.gson.Gson
 import com.my.kizzy.BuildConfig
 import com.my.kizzy.R
-import com.my.kizzy.data.remote.User
 import com.my.kizzy.service.AppDetectionService
 import com.my.kizzy.service.CustomRpcService
 import com.my.kizzy.service.ExperimentalRpc
 import com.my.kizzy.service.MediaRpcService
 import com.my.kizzy.ui.common.Routes
-import com.my.kizzy.ui.screen.profile.user.Base
 import com.my.kizzy.utils.AppUtils
 import com.my.kizzy.utils.Prefs
-import com.my.kizzy.utils.Prefs.USER_DATA
-import com.my.kizzy.utils.fromJson
-import com.skydoves.landscapist.glide.GlideImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,13 +41,6 @@ fun Home(
     hasNotificationAccess: MutableState<Boolean>,
     navigateTo: (String) -> Unit
 ) {
-    val user: User? = Gson().fromJson(Prefs[USER_DATA, ""])
-    val avatar = user?.let { _user ->
-        _user.avatar?.let {
-            if (it.startsWith("a_")) "$Base/avatars/${_user.id}/${it}.gif"
-            else "$Base/avatars/${_user.id}/${it}.png"
-        }
-    }
     val ctx = LocalContext.current
     val features = listOf(
         HomeItem(
@@ -157,7 +140,7 @@ fun Home(
             },
             shape = RoundedCornerShape(20.dp, 44.dp, 20.dp, 44.dp),
             showSwitch = hasUsageAccess.value && hasNotificationAccess.value,
-            isVisible = BuildConfig.DEBUG || user?.verified == true
+            isVisible = BuildConfig.DEBUG
         ),
         HomeItem(
             title = "Coming Soon",
@@ -172,7 +155,7 @@ fun Home(
     Scaffold(topBar = {
         LargeTopAppBar(title = {
             Text(
-                text = stringResource(id = R.string.welcome) + ", ${user?.username ?: ""}",
+                text = stringResource(id = R.string.welcome),
                 style = MaterialTheme.typography.headlineLarge,
             )
         }, navigationIcon = {
@@ -182,26 +165,6 @@ fun Home(
                 Icon(
                     Icons.Outlined.Settings, Icons.Outlined.Settings.name
                 )
-            }
-        }, actions = {
-            IconButton(onClick = { navigateTo(Routes.PROFILE) }) {
-                if (user != null) {
-                    GlideImage(
-                        imageModel = avatar,
-                        modifier = Modifier
-                            .size(52.dp)
-                            .border(
-                                2.dp, MaterialTheme.colorScheme.secondaryContainer, CircleShape
-                            )
-                            .clip(CircleShape),
-                        previewPlaceholder = R.drawable.error_avatar
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Outlined.Person,
-                        contentDescription = Icons.Default.Person.name
-                    )
-                }
             }
         })
     }) { paddingValues ->

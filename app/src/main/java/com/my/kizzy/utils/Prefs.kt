@@ -70,11 +70,6 @@ object Prefs {
         set(ENABLED_APPS, Gson().toJson(enabledPackages))
     }
     //User Preferences
-    const val USER_DATA = "user" //Json Data Referencing User_Data class
-    const val TOKEN = "token"
-    const val USER_ID = "user-id"
-    const val USER_BIO = "user-bio"
-    const val USER_NITRO = "user-nitro"
     const val LAST_RUN_CONSOLE_RPC = "last_run_console_rpc"
     const val LAST_RUN_CUSTOM_RPC = "last_run_custom_rpc"
 

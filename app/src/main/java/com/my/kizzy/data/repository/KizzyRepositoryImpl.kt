@@ -14,7 +14,6 @@ package com.my.kizzy.data.repository
 
 import com.my.kizzy.data.remote.ApiService
 import com.my.kizzy.data.remote.GamesResponse
-import com.my.kizzy.data.remote.User
 import com.my.kizzy.domain.repository.KizzyRepository
 import com.my.kizzy.utils.toImageAsset
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -42,9 +41,5 @@ class KizzyRepositoryImpl @Inject constructor(
 
     override suspend fun getGames(): List<GamesResponse> {
         return api.getGames()
-    }
-
-    override suspend fun getUser(userid: String): User {
-        return api.getUser(userid)
     }
 }

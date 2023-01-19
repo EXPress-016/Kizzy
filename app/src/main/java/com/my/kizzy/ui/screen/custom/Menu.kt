@@ -15,16 +15,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import com.blankj.utilcode.util.FileIOUtils
 import com.blankj.utilcode.util.FileUtils
 import com.google.gson.GsonBuilder
 import com.my.kizzy.R
 import com.my.kizzy.common.Constants
-import com.my.kizzy.data.remote.User
 import com.my.kizzy.ui.common.MultiChoiceItem
 import com.my.kizzy.ui.common.SingleChoiceItem
-import com.my.kizzy.ui.screen.profile.user.ProfileCard
 import com.my.kizzy.utils.Log
 import com.my.kizzy.utils.Prefs
 import java.io.File
@@ -206,37 +203,3 @@ fun String.stringToData(): RpcIntent {
     }
 }
 
-
-@Composable
-fun PreviewDialog(
-    user: User,
-    rpc: RpcIntent? = null,
-    onDismiss: () -> Unit
-) {
-    Dialog(onDismissRequest = {
-        onDismiss()
-    }) {
-        ProfileCard(
-            user = user, padding = 0.dp, rpcData = rpc,
-            type = rpc?.type.getType(rpc?.name),
-            showTs = false
-        )
-    }
-}
-
-private fun String?.getType(name: String?): String {
-    val type: Int = try {
-        if (!this.isNullOrEmpty()) this.toDouble().toInt()
-        else 0
-    } catch (ex: NumberFormatException) {
-        0
-    }
-    return when (type) {
-        1 -> "Streaming on $name"
-        2 -> "Listening $name"
-        3 -> "Watching $name"
-        4 -> ""
-        5 -> "Competing in $name"
-        else -> "Playing a game"
-    }
-}
